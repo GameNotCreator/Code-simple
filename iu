@@ -1,0 +1,177 @@
+Dans l'emplacement, au lieu que le nom et prenom s affiche, il y a ecrit undefined undefined,
+Voici ma route login :
+router.post("/login", (request, response) => {
+      try {
+        const { email, password, restaurant } = request.body;
+    
+        console.log(`${email}, ${password}, ${restaurant}`);
+    
+        db.collection('login').findOne({
+          email: email,
+          restaurant: restaurant,
+        }, (err, user) => {
+          if (user === null) {
+            return response.json({
+              error: "Informations not match. Please create account first"
+            });
+          } else if (err) throw err;
+    
+          // Use bcrypt to compare hashed passwords
+          bcrypt.compare(password, user.password, (error, result) => {
+            if (error) {
+              console.log(error);
+              return response.json({
+                error: "Error occurred while comparing passwords"
+              });
+            } else if (result === true) {
+              console.log("Login Succesfully");
+              response.cookie('first_name', user.first_name, {
+               maxAge: 86400000,
+               sameSite: 'strict'
+             });
+             response.cookie('last_name', user.last_name, {
+               maxAge: 86400000,
+               sameSite: 'strict'
+             });
+              return response.json({
+                error: ""
+              });
+            } else {
+              console.log("Password not match");
+              return response.json({
+                error: "Wrong Password"
+              });
+            }
+          });
+        });
+      } catch (error) {
+        console.log("Invalid information");
+      }
+    });
+Voici ma route namedisplay :
+router.get("/namedisplay", async (req, res) => {
+      // Récupérer le prénom et le nom de l'utilisateur depuis les cookies
+      const firstName = req.cookies.first_name;
+      const lastName = req.cookies.last_name;
+    
+      // Créer une réponse avec le prénom et le nom de l'utilisateur
+      const response = {
+        first_name: firstName,
+        last_name: lastName,
+      };
+    
+      res.json(response);
+    });
+Voici mon Navbar.js :
+import React, { useState } from "react";
+import Navbar from "react-bootstrap/Navbar";
+import Nav from "react-bootstrap/Nav";
+import Container from "react-bootstrap/Container";
+import logo from "../Assets/avatars.png";
+import Button from "react-bootstrap/Button";
+import { Link } from "react-router-dom";
+import { CgGitFork } from "react-icons/cg";
+import {CgProfile} from "react-icons/cg" 
+import Cookies from 'js-cookie';
+
+import {
+  AiFillStar,
+  AiOutlineHome,
+  AiOutlineFundProjectionScreen,
+  AiOutlineUser,
+} from "react-icons/ai";
+
+import { CgFileDocument } from "react-icons/cg";
+
+function NavBar() {
+  const [expand, updateExpanded] = useState(false);
+  const [navColour, updateNavbar] = useState(false);
+  const userName = Cookies.get('first_name') + ' ' + Cookies.get('last_name');
+
+  function scrollHandler() {
+    if (window.scrollY >= 20) {
+      updateNavbar(true);
+    } else {
+      updateNavbar(false);
+    }
+  }
+
+  window.addEventListener("scroll", scrollHandler);
+
+  return (
+    <Navbar
+      expanded={expand}
+      fixed="top"
+      expand="md"
+      className={navColour ? "sticky" : "navbar"}
+    >
+      <Container>
+        <Navbar.Brand href="/" className="d-flex">
+          <img src={logo} className="img-fluid logo" alt="brand" />
+        </Navbar.Brand>
+        <Navbar.Toggle
+          aria-controls="responsive-navbar-nav"
+          onClick={() => {
+            updateExpanded(expand ? false : "expanded");
+          }}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </Navbar.Toggle>
+        <Navbar.Collapse id="responsive-navbar-nav">
+          <Nav className="ms-auto" defaultActiveKey="#home">
+            <Nav.Item>
+              <Nav.Link as={Link} to="/" onClick={() => updateExpanded(false)}>
+                <AiOutlineHome style={{ marginBottom: "2px" }} /> Home
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item>
+              <Nav.Link
+                as={Link}
+                to="/about"
+                onClick={() => updateExpanded(false)}
+              >
+                <AiOutlineUser style={{ marginBottom: "2px" }} />
+                A propos de nous
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item>
+              <Nav.Link
+                as={Link}
+                to="/project"
+                onClick={() => updateExpanded(false)}
+              >
+                <AiOutlineFundProjectionScreen
+                  style={{ marginBottom: "2px" }}
+                />{" "}
+                Menu
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item>
+              <Nav.Link
+                as={Link}
+                to="/contact"
+                onClick={() => updateExpanded(false)}
+              >
+                <CgFileDocument style={{ marginBottom: "2px" }} />  
+                Nous contacter
+              </Nav.Link>
+            </Nav.Item>
+
+            <Nav.Item className="fork-btn">
+            <Button as={Link} to="/login" onClick={() => updateExpanded(false)}>
+                <CgProfile style={{ fontSize: "1.2em" }} /> {userName ? userName : 'Login'}
+            </Button>
+            </Nav.Item>
+          </Nav>
+        </Navbar.Collapse>
+      </Container>
+    </Navbar>
+  );
+}
+
+export default NavBar;
